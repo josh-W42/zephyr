@@ -75,6 +75,10 @@ the wind PNG is much over ~1 MB.
 ## Frontend
 
 **Globe.** Three.js sphere with a muted dark basemap so data layers dominate.
+The basemap is drawn from GFS's own `LAND:surface` mask (cfgrib `lsm`, 0/1,
+verified 2026-09-24), exported as a sixth texture: land/ocean shading plus a
+coastline at the mask's 0.5 contour (`fwidth` in the fragment shader). No
+third-party map image or licence.
 
 **Color layers.** One `ShaderMaterial` samples the active field texture by
 equirectangular UV, decodes with manifest min/max uniforms, and maps through a
