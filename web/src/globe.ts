@@ -54,6 +54,7 @@ void main() {
 }`;
 
 const FOV = 35;
+const DEFAULT_DISTANCE = 3.4;
 
 export class Globe {
   readonly scene = new THREE.Scene();
@@ -80,12 +81,20 @@ export class Globe {
       },
     });
     this.scene.add(new THREE.Mesh(new THREE.SphereGeometry(1, 192, 96), this.material));
-    this.camera.position.set(...lonLatToVec3(-30, 25, 3.4));
+    this.camera.position.set(...lonLatToVec3(-30, 25, DEFAULT_DISTANCE));
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enablePan = false;
     this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.12; // the default 0.05 coasted ~100° after a fast drag
     this.controls.minDistance = 1.25;
     this.controls.maxDistance = 6;
+  }
+
+  /** Call once per frame. Rotation slows as the camera nears the surface so the globe tracks the cursor. */
+  update() {
+    const altitude = this.camera.position.length() - 1;
+    this.controls.rotateSpeed = THREE.MathUtils.clamp(altitude / (DEFAULT_DISTANCE - 1), 0.1, 1);
+    this.controls.update();
   }
 
   setScalar(field: THREE.Texture | null, layer?: Layer, scale?: ColorScale) {

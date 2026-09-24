@@ -4,6 +4,7 @@ import { runBench, type BenchResult } from "./bench";
 import { debugWind, driftStats } from "./debugWind";
 import { sampleByte } from "./field";
 import { formatLonLat, formatValidTime, formatValue, windFrom } from "./format";
+import { vec3ToLonLat } from "./geo";
 import { Globe } from "./globe";
 import { drawLegend } from "./legend";
 import { decodeValue, parseManifest, staleness, type LayerName, type ScalarName } from "./manifest";
@@ -142,7 +143,7 @@ async function start() {
   addEventListener("resize", resize);
   resize();
   renderer.setAnimationLoop(() => {
-    globe.controls.update();
+    globe.update();
     renderer.setRenderTarget(null);
     renderer.clear();
     renderer.render(globe.scene, globe.camera);
@@ -161,6 +162,10 @@ async function start() {
     window.__zephyr = {
       describe,
       view: (lon: number, lat: number) => globe.view(lon, lat),
+      camera: () => {
+        const p = globe.camera.position;
+        return { lonLat: vec3ToLonLat([p.x, p.y, p.z]), distance: p.length() };
+      },
       // Several boxes share one pair of readings so their drifts are directly comparable.
       drift: async (ms: number, ...boxes: [number, number, number, number][]) => {
         if (!windLayer) return null;
