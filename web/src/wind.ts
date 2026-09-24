@@ -3,12 +3,18 @@ import { GPUComputationRenderer } from "three/addons/misc/GPUComputationRenderer
 import { FullScreenQuad } from "three/addons/postprocessing/Pass.js";
 import { GLSL_GEO, type Grid } from "./geo";
 import type { Layer } from "./manifest";
+import {
+  copyCameraState,
+  emptyCameraState,
+  GLSL_REPROJECT,
+  TRAIL_RADIUS,
+  updateCameraState,
+} from "./reproject";
 import { gridUniforms } from "./textures";
 
 const SPEED = 0.02; // degrees of arc per (m/s) per frame; tuned visually in M6
 const DROP_RATE = 0.003; // mean particle life ~330 frames
 const FADE = 0.96;
-const HIDE_AFTER_MOVE_MS = 200;
 
 const UPDATE = /* glsl */ `
 ${GLSL_GEO}
@@ -39,7 +45,7 @@ attribute vec2 ref;
 varying float vSpeed;
 void main() {
   vec4 p = texture2D(uParticles, ref);
-  vec3 world = lonLatToDir(p.xy) * 1.002;
+  vec3 world = lonLatToDir(p.xy) * ${TRAIL_RADIUS.toFixed(3)};
   vSpeed = p.z;
   if (dot(world, cameraPosition - world) < 0.0) { // far side of the globe
     gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
@@ -57,12 +63,18 @@ const QUAD_VERT = /* glsl */ `
 varying vec2 vUv;
 void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
 
-// Subtracting one 8-bit step guarantees trails decay to zero in RGBA8 targets.
+// Samples last frame's trails where this pixel's surface point was, so trails
+// stay on the globe as the camera moves. Subtracting one 8-bit step
+// guarantees trails decay to zero in RGBA8 targets.
 const FADE_FRAG = /* glsl */ `
+${GLSL_REPROJECT}
 uniform sampler2D uPrev;
 uniform float uFade;
 varying vec2 vUv;
-void main() { gl_FragColor = max(texture2D(uPrev, vUv) * uFade - vec4(1.0 / 255.0), 0.0); }`;
+void main() {
+  vec3 r = reprojectUV(vUv);
+  gl_FragColor = r.z > 0.5 ? max(texture2D(uPrev, r.xy) * uFade - vec4(1.0 / 255.0), 0.0) : vec4(0.0);
+}`;
 
 const COMPOSITE_FRAG = /* glsl */ `
 uniform sampler2D uTrail;
@@ -81,7 +93,9 @@ export class WindLayer {
   private readonly fade: FullScreenQuad;
   private readonly composite: FullScreenQuad;
   private trails: [THREE.WebGLRenderTarget, THREE.WebGLRenderTarget];
-  private lastMove = -Infinity;
+  private readonly current = emptyCameraState();
+  private readonly previous = emptyCameraState();
+  private clearNext = true; // never sample stale or uninitialised trail targets
   private visible = true;
 
   constructor(
@@ -137,7 +151,15 @@ export class WindLayer {
       new THREE.ShaderMaterial({
         vertexShader: QUAD_VERT,
         fragmentShader: FADE_FRAG,
-        uniforms: { uPrev: { value: null }, uFade: { value: FADE } },
+        uniforms: {
+          uPrev: { value: null },
+          uFade: { value: FADE },
+          uInvViewProj: { value: this.current.invViewProj },
+          uCamPos: { value: this.current.position },
+          uPrevViewProj: { value: this.previous.viewProj },
+          uPrevCamPos: { value: this.previous.position },
+          uRadius: { value: TRAIL_RADIUS },
+        },
         blending: THREE.NoBlending,
         depthTest: false,
         depthWrite: false,
@@ -174,38 +196,36 @@ export class WindLayer {
 
   setVisible(on: boolean) {
     this.visible = on;
-    this.lastMove = performance.now(); // start from clean trails when re-shown
-  }
-
-  cameraMoved() {
-    this.lastMove = performance.now();
+    this.clearNext = true;
   }
 
   resize() {
     this.trails.forEach((t) => t.dispose());
     this.trails = [this.makeTarget(), this.makeTarget()];
+    this.clearNext = true;
   }
 
-  render(now: number) {
+  render() {
     if (!this.visible) return;
     this.variable.material.uniforms.uSeed.value = Math.random() * 100;
     this.gpu.compute();
 
+    updateCameraState(this.camera, this.current);
+    if (this.clearNext) copyCameraState(this.current, this.previous);
     const [prev, next] = this.trails;
-    const moving = now - this.lastMove < HIDE_AFTER_MOVE_MS;
     this.renderer.setRenderTarget(next);
     const fade = this.fade.material as THREE.ShaderMaterial;
     fade.uniforms.uPrev.value = prev.texture;
-    fade.uniforms.uFade.value = moving ? 0 : FADE; // 0 clears the trails while moving
+    fade.uniforms.uFade.value = this.clearNext ? 0 : FADE;
+    this.clearNext = false;
     this.fade.render(this.renderer);
-    if (!moving) {
-      this.pointsMaterial.uniforms.uParticles.value = this.gpu.getCurrentRenderTarget(this.variable).texture;
-      this.renderer.render(this.pointsScene, this.camera);
-    }
+    this.pointsMaterial.uniforms.uParticles.value = this.gpu.getCurrentRenderTarget(this.variable).texture;
+    this.renderer.render(this.pointsScene, this.camera);
     this.renderer.setRenderTarget(null);
     (this.composite.material as THREE.ShaderMaterial).uniforms.uTrail.value = next.texture;
     this.composite.render(this.renderer);
     this.trails = [next, prev];
+    copyCameraState(this.current, this.previous);
   }
 
   /** Current particle state (lon, lat, speed, 1) — debugging only. */

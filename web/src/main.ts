@@ -51,7 +51,6 @@ async function start() {
       const d = debugWind(debug, manifest.grid);
       windLayer.setWind(rgbaDataTexture(d.data, manifest.grid.width, manifest.grid.height), d.layer);
     }
-    globe.controls.addEventListener("change", () => windLayer?.cameraMoved());
   } else {
     const notice = $("#notice");
     notice.hidden = false;
@@ -76,12 +75,12 @@ async function start() {
   };
   addEventListener("resize", resize);
   resize();
-  renderer.setAnimationLoop((now) => {
+  renderer.setAnimationLoop(() => {
     globe.controls.update();
     renderer.setRenderTarget(null);
     renderer.clear();
     renderer.render(globe.scene, globe.camera);
-    windLayer?.render(now);
+    windLayer?.render();
   });
 
   if (dev) {
