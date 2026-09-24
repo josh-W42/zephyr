@@ -31,7 +31,7 @@ banner. No server.
 ```
 GitHub Actions (cron, 6h)
   └─ pipeline/ (Python)
-       NOMADS GFS 0.25° subset ──► xarray+cfgrib decode ──► 8-bit PNG textures
+       AWS GFS 0.25° (.idx + Range) ─► xarray+cfgrib decode ──► 8-bit PNG textures
                                                           └► manifest.json
   └─ firebase deploy (Hosting)
                                    │
@@ -44,12 +44,18 @@ Repo layout: `pipeline/`, `web/`, `.github/workflows/refresh.yml`, `docs/`.
 
 ## Data pipeline
 
-1. **Select cycle.** GFS runs at 00/06/12/18z and appears on NOMADS roughly
-   4–5 h after cycle time. Pick the latest complete cycle, then the forecast
-   hour closest to "now" (typically f003–f006). This is nearer real time than
-   f000 and sidesteps precipitation rate likely being absent from f000.
-2. **Download a subset** via the NOMADS GRIB filter: UGRD/VGRD at 10 m,
-   TMP at 2 m, PRATE (surface), TCDC (entire atmosphere). A few MB, not ~500 MB.
+1. **Select cycle.** GFS runs at 00/06/12/18z and appears roughly 4–5 h after
+   cycle time. Pick the latest cycle whose file for the forecast hour closest
+   to "now" exists (0p25 files are hourly), typically f004–f006.
+2. **Download a subset** from the NOAA Open Data mirror on AWS
+   (`noaa-gfs-bdp-pds`) using the per-file `.idx` inventory and HTTP Range
+   requests: UGRD/VGRD at 10 m, TMP at 2 m, PRATE (surface), TCDC (entire
+   atmosphere). ~0.5 MB per field instead of ~500 MB. Chosen over the NOMADS
+   filter (verified 2026-09-23): exact messages, no NOMADS rate limiting, and
+   the bucket archives past runs so test fixtures are reproducible.
+   Forecast files carry both an instantaneous and an "0-N hour ave" message
+   for PRATE and TCDC, so selection must match the instantaneous step
+   (`anl` or `N hour fcst`) explicitly.
 3. **Decode** with `xarray` + `cfgrib`; roll longitudes 0–360 → −180–180.
 4. **Encode** each field as an 8-bit PNG, linearly quantized between per-field
    min/max. Wind: U→R, V→G. Scalars: R. Temperature resolves to ~0.5 °C.
@@ -124,7 +130,7 @@ builds artifacts without deploying.
 
 | #  | Milestone | Done when |
 | -- | --------- | --------- |
-| M0 | Spike unknowns | NOMADS subset fetch, cfgrib on Actions Ubuntu, f000 PRATE gap, PNG sizes, sphere UV alignment all confirmed or resolved |
+| M0 | Spike unknowns | Byte-range subset fetch, cfgrib decode names/units (Windows + Linux), PNG sizes, sphere UV alignment all confirmed or resolved |
 | M1 | Pipeline locally | `manifest.json` + PNGs written into `web/public/data` |
 | M2 | Globe + temperature | Temperature layer, legend, hover readout |
 | M3 | GPU wind | Particles + trails, verified against debug fields |
@@ -134,8 +140,11 @@ builds artifacts without deploying.
 
 ## Open questions / unverified assumptions
 
-- `cfgrib` (needs ecCodes) installs and decodes cleanly on the Actions runner.
-- PRATE absent from GFS f000 files (believed, not verified).
-- Exact NOMADS filter parameter names for the chosen levels.
-- PNG sizes at 0.25°.
+- `cfgrib` (needs ecCodes) installs and decodes cleanly on the Actions runner
+  and on Windows with Python 3.11 (fallback: WSL Ubuntu).
+- ~~PRATE absent from GFS f000 files~~ — wrong: f000 has PRATE (`anl`); later
+  hours have instant + averaged messages (verified 2026-09-23 from `.idx`).
+- ~~Exact NOMADS filter parameter names~~ — moot: switched to AWS + `.idx`
+  byte ranges.
+- PNG sizes at 0.25° (fallback: fetch the `0p50` files directly).
 - Three.js `SphereGeometry` UV origin vs. the rolled −180° texture edge.
