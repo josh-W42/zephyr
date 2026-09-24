@@ -115,8 +115,9 @@ async function start() {
     panel.setReadout(hit ? describe(...hit) : HINT);
   };
   canvas.addEventListener("pointermove", (e) => e.pointerType === "mouse" && readout(e));
-  canvas.addEventListener("pointerup", (e) => e.pointerType !== "mouse" && readout(e));
-  canvas.addEventListener("pointerleave", () => panel.setReadout(HINT));
+  canvas.addEventListener("pointerup", readout);
+  // Touch pointers "leave" right after pointerup; resetting then would erase every tap.
+  canvas.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && panel.setReadout(HINT));
 
   const checkStale = () => {
     const s = staleness(manifest.validTime, now());

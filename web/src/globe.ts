@@ -53,9 +53,11 @@ void main() {
   gl_FragColor = vec4(color, 1.0);
 }`;
 
+const FOV = 35;
+
 export class Globe {
   readonly scene = new THREE.Scene();
-  readonly camera = new THREE.PerspectiveCamera(35, 1, 0.01, 100);
+  readonly camera = new THREE.PerspectiveCamera(FOV, 1, 0.01, 100);
   readonly controls: OrbitControls;
   private readonly material: THREE.ShaderMaterial;
   private readonly raycaster = new THREE.Raycaster();
@@ -103,7 +105,11 @@ export class Globe {
   }
 
   resize(width: number, height: number) {
-    this.camera.aspect = width / height;
+    const aspect = width / height;
+    this.camera.aspect = aspect;
+    // Keep the narrower screen dimension at FOV so the globe fits portrait phones too.
+    this.camera.fov =
+      aspect >= 1 ? FOV : THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(FOV / 2)) / aspect));
     this.camera.updateProjectionMatrix();
   }
 
