@@ -375,7 +375,8 @@ u = 0 is at −X, u = 0.5 at +X, u = 0.75 at −Z, and v = 1 at the north pole
 - Create: `web/package.json`, `web/tsconfig.json`, `web/index.html`, `web/src/main.ts`
 - Create: `web/uv-probe.html`, `web/src/spikes/uvProbe.ts`
 - Create or modify: `C:\Users\wilso\Documents\programming\claude\.claude\launch.json`
-  (the preview tool reads launch configs from the session's working directory)
+  (the preview tool reads launch configs from the session root, not zephyr/;
+  **done in M0: `zephyr-web` on port 5174** since ipa-captions owns 5173)
 
 **Step 1: Minimal Vite project by hand (avoids interactive `create-vite` prompts)**
 
@@ -1181,14 +1182,16 @@ Expected: FAIL — modules not found.
 
 **Step 3: Implement**
 
-`pipeline/zephyr_pipeline/decode.py` (names/units per M0 Task 2 — update if the
-findings differ):
+`pipeline/zephyr_pipeline/decode.py` (names/units confirmed by M0 Task 2; the
+`xr.set_options` opt-in silences cfgrib's xarray merge `FutureWarning` — M0
+verified it yields identical arrays on the fixture):
 
 ```python
 from pathlib import Path
 
 import cfgrib
 import numpy as np
+import xarray as xr
 
 EXPECTED = {
     "u10": ("u", "m s**-1"),
@@ -1202,7 +1205,9 @@ EXPECTED = {
 def load_fields(path: Path) -> tuple[dict[str, np.ndarray], np.ndarray, np.ndarray]:
     fields: dict[str, np.ndarray] = {}
     lats = lons = None
-    for ds in cfgrib.open_datasets(str(path), backend_kwargs={"indexpath": ""}):
+    with xr.set_options(use_new_combine_kwarg_defaults=True):
+        datasets = cfgrib.open_datasets(str(path), backend_kwargs={"indexpath": ""})
+    for ds in datasets:
         try:
             for name, da in ds.data_vars.items():
                 if name not in EXPECTED:

@@ -138,13 +138,52 @@ builds artifacts without deploying.
 | M5 | Automation | Scheduled Action + new Firebase project + deploy |
 | M6 | Polish | Mobile perf, frame-time benchmarks, README architecture story |
 
-## Open questions / unverified assumptions
+## M0 findings (2026-09-23)
 
-- `cfgrib` (needs ecCodes) installs and decodes cleanly on the Actions runner
-  and on Windows with Python 3.11 (fallback: WSL Ubuntu).
-- ~~PRATE absent from GFS f000 files~~ — wrong: f000 has PRATE (`anl`); later
-  hours have instant + averaged messages (verified 2026-09-23 from `.idx`).
-- ~~Exact NOMADS filter parameter names~~ — moot: switched to AWS + `.idx`
-  byte ranges.
-- PNG sizes at 0.25° (fallback: fetch the `0p50` files directly).
-- Three.js `SphereGeometry` UV origin vs. the rolled −180° texture edge.
+Evidence: commits `87572d5`..`76a9e0c`, scripts in `pipeline/spikes/`.
+
+**ecCodes / cfgrib.**
+- Windows, Python 3.11: `pip install eccodes cfgrib` works; the Windows
+  `eccodes` wheel (cp311-win_amd64) bundles `eccodes.dll`.
+  `python -m cfgrib selfcheck` → `Found: ecCodes v2.48.0. Your system is ready.`
+- Linux: the `eccodes` wheel is pure Python and depends on `eccodeslib` via
+  `platform_system != "Windows"`; `eccodeslib` publishes
+  `cp311 manylinux_2_28_x86_64` wheels, which the GitHub Ubuntu runner supports.
+  **Not executed on Linux yet**: Docker Desktop was not running and WSL Ubuntu
+  has no pip/venv (needs `sudo apt install python3-venv`). First real Linux
+  run is the M5 CI job.
+- Versions: numpy 2.4.6, xarray 2026.7.0, cfgrib 0.9.15.1, eccodes 2.48.0,
+  pillow 12.3.0, pytest 9.1.1 (pinned as minimums in `pyproject.toml`).
+- cfgrib triggers an xarray `FutureWarning` (merge `compat` default changing).
+  Harmless now; M1 opts in to the new defaults inside `load_fields` so the
+  fixture test would catch any behaviour change.
+
+**Download + decode** (`probe_download.py 20260923 0 6`).
+- All 15 Range requests (5 fields × 0p25/0p50/1p00) → `HTTP 206`, each a
+  complete GRIB message (`GRIB`…`7777`). Missing key HEAD → `404`.
+- 0p25 subset 3.1 MiB, 0p50 0.95 MiB, 1p00 276 KiB.
+- cfgrib names/units, all `stepType=instant`: `u10`/`v10` `m s**-1`,
+  `t2m` `K`, `prate` `kg m**-2 s**-1`, `tcc` `%` (typeOfLevel `atmosphere`).
+- Grid: latitude 90 → −90, longitude 0 → 359.75 (0p25: 721×1440).
+
+**Textures** (`probe_png.py`, 8-bit, Pillow `optimize=True`).
+
+| Resolution | wind RGB | temperature | precipitation | clouds | total |
+| --- | --- | --- | --- | --- | --- |
+| 0p25 | 684 KiB | 237 KiB | 90 KiB | 497 KiB | ~1.5 MiB |
+| 0p50 | 231 KiB | 80 KiB | 33 KiB | 131 KiB | ~0.5 MiB |
+
+Decision: **stay at 0p25**. Precipitation: linear 8-bit zeroes 4.2% of rainy
+(>0.1 mm/h) cells at 0p25 (max 55.8 mm/h); sqrt zeroes none → **sqrt
+encoding** for precipitation.
+
+**Sphere alignment** (`web/uv-probe.html`, three r186 — same as apsis).
+Default `SphereGeometry` UVs + texture with column 0 = −180°, row 0 = +90°,
+default `flipY`: `lonLatToVec3(lon, lat) = (cos lat·cos lon, sin lat,
+−cos lat·sin lon)` places markers exactly on 0°, 90°E, 90°W and 180°. No seam
+at the dateline with `RepeatWrapping`; north cap centred; not mirrored
+(from 45°E, 0° is left of 90°E). No console errors.
+
+**Tooling.** The preview tool reads `claude/.claude/launch.json` (the session
+root), which already serves ipa-captions on 5173; zephyr's dev server is the
+`zephyr-web` entry on **port 5174** (`--strictPort`).
