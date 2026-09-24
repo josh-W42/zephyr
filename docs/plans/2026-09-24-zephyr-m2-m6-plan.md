@@ -1642,7 +1642,12 @@ order — do not "fix" by flipping a sign in the shader without finding which.
 
 `navigate` to `http://localhost:5174/`, wait 2 s:
 - Southern Ocean westerlies: `drift(500, [-180, 180, -55, -40])` → `dLon > 0`.
-- Pacific trade winds: `drift(500, [-170, -120, 10, 20])` → `dLon < 0`.
+- Pacific trade winds: `drift(500, [-170, -120, 15, 25])` → `dLon < 0`.
+  (Done 2026-09-24: 10–20°N was a bad box — the data itself had mean
+  u −0.77 there that day, in the ITCZ. Check a box's u/v means from the PNG
+  in Python before reading a drift sign. `drift` accepts several boxes and
+  measures them from one pair of readings; use that for ratios, since separate
+  calls differ by ±1 frame ≈ ±10%.)
 - Screenshot: streaks over the temperature layer; drag the globe
   (`left_click_drag`) → trails vanish during the drag and return after.
 - `?nofloat` → notice visible, globe + temperature still render.
