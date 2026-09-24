@@ -6,6 +6,7 @@ import { sampleByte } from "./field";
 import { formatLonLat, formatValidTime, formatValue, windFrom } from "./format";
 import { vec3ToLonLat } from "./geo";
 import { Globe } from "./globe";
+import { keyMove } from "./keys";
 import { drawLegend } from "./legend";
 import { decodeValue, parseManifest, staleness, type LayerName, type ScalarName } from "./manifest";
 import { SCALAR_LAYERS } from "./scales";
@@ -127,6 +128,13 @@ async function start() {
   canvas.addEventListener("pointerup", readout);
   // Touch pointers "leave" right after pointerup; resetting then would erase every tap.
   canvas.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && panel.setReadout(HINT));
+  canvas.addEventListener("keydown", (e) => {
+    const move = keyMove(e.key, e.shiftKey);
+    if (!move) return;
+    e.preventDefault();
+    globe.nudge(move);
+    panel.setReadout(describe(...globe.center()));
+  });
 
   const checkStale = () => {
     const s = staleness(manifest.validTime, now());

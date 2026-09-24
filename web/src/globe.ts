@@ -1,7 +1,8 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { ColorScale } from "./colors";
-import { GLSL_GEO, lonLatToVec3, vec3ToLonLat, type Grid } from "./geo";
+import { GLSL_GEO, lonLatToVec3, vec3ToLonLat, wrapLon, type Grid } from "./geo";
+import type { KeyMove } from "./keys";
 import type { Layer } from "./manifest";
 import { gridUniforms, scaleTexture } from "./textures";
 
@@ -132,5 +133,18 @@ export class Globe {
   view(lon: number, lat: number, distance = this.camera.position.length()) {
     this.camera.position.set(...lonLatToVec3(lon, lat, distance));
     this.controls.update();
+  }
+
+  /** Lon/lat at the centre of the view (directly under the camera). */
+  center(): [number, number] {
+    const p = this.camera.position;
+    return vec3ToLonLat([p.x, p.y, p.z]);
+  }
+
+  nudge({ dLon, dLat, zoom }: KeyMove) {
+    const [lon, lat] = this.center();
+    const { minDistance, maxDistance } = this.controls;
+    const distance = THREE.MathUtils.clamp(this.camera.position.length() * zoom, minDistance, maxDistance);
+    this.view(wrapLon(lon + dLon), THREE.MathUtils.clamp(lat + dLat, -85, 85), distance);
   }
 }

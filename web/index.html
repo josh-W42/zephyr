@@ -7,7 +7,13 @@
     <meta name="description" content="Live global wind, temperature, precipitation and cloud cover from NOAA GFS on a 3D globe." />
   </head>
   <body>
-    <canvas id="globe"></canvas>
+    <canvas
+      id="globe"
+      tabindex="0"
+      role="application"
+      aria-roledescription="globe"
+      aria-label="Weather globe. Arrow keys rotate (Shift for bigger steps), plus and minus zoom. The readout describes the point at the centre."
+    ></canvas>
     <div id="banner" class="banner" role="status" hidden></div>
     <button id="menu" class="menu" aria-controls="panel" aria-expanded="true" aria-label="Toggle controls">☰</button>
     <aside id="panel" class="panel">
@@ -17,10 +23,10 @@
       <label class="toggle"><input type="checkbox" id="wind-toggle" checked /> Wind particles</label>
       <p id="notice" class="notice" hidden></p>
       <figure class="legend">
-        <canvas id="legend" width="240" height="10"></canvas>
+        <canvas id="legend" width="240" height="10" aria-hidden="true"></canvas>
         <figcaption id="legend-ticks"></figcaption>
       </figure>
-      <p id="readout" class="readout">Hover the globe for values</p>
+      <p id="readout" class="readout" aria-live="polite" aria-atomic="true">Hover the globe for values</p>
       <footer class="muted">Data: NOAA GFS via NOAA Open Data Dissemination.</footer>
     </aside>
     <script type="module" src="/src/main.ts"></script>
