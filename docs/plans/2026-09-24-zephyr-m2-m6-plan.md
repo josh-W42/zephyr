@@ -1863,7 +1863,6 @@ async function start() {
       const d = debugWind(debug, manifest.grid);
       windLayer.setWind(rgbaDataTexture(d.data, manifest.grid.width, manifest.grid.height), d.layer);
     }
-    globe.controls.addEventListener("change", () => windLayer?.cameraMoved());
   } else {
     panel.notice("Wind animation needs WebGL float render targets, which this device lacks. Color layers still work.");
   }
@@ -1875,9 +1874,10 @@ async function start() {
   let active: { name: ScalarName; field: LoadedField } | null = { name: "temperature", field: first };
   const show = () => {
     const layer = active && manifest.layers[active.name];
-    const scale = active && SCALAR_LAYERS[active.name].scale;
+    const config = active && SCALAR_LAYERS[active.name];
+    const scale = config?.scale ?? null;
     globe.setScalar(active?.field.texture ?? null, layer ?? undefined, scale ?? undefined);
-    drawLegend($("#legend"), $("#legend-ticks"), scale, layer?.units);
+    drawLegend($("#legend"), $("#legend-ticks"), scale, layer?.units, config?.ticks);
   };
   show();
 
@@ -1936,12 +1936,12 @@ async function start() {
   };
   addEventListener("resize", resize);
   resize();
-  renderer.setAnimationLoop((t) => {
+  renderer.setAnimationLoop(() => {
     globe.controls.update();
     renderer.setRenderTarget(null);
     renderer.clear();
     renderer.render(globe.scene, globe.camera);
-    windLayer?.render(t);
+    windLayer?.render();
   });
 
   if (dev) {
@@ -2204,9 +2204,12 @@ visible; do not poll during a run; close other tabs on the same origin.
 
 - Tune `SPEED`, `DROP_RATE`, `FADE`, point size so a 10 m/s wind reads as
   flowing, not jittering, at default zoom; make rotation speed scale with
-  camera distance (`controls.rotateSpeed`).
-- Review the temperature palette with the **dataviz** skill (color-vision
-  deficiency, perceptual ordering); adjust stops in `scales.ts` only.
+  camera distance (`controls.rotateSpeed`). Reduce coasting after a drag
+  (`controls.dampingFactor`, default 0.05, coasts ~100° after a fast drag).
+- Palette replaced 2026-09-24 with a multi-hue scale
+  (`2026-09-24-palette-and-trail-reprojection-design.md`). Still due: review it
+  with the **dataviz** skill (color-vision deficiency, perceptual ordering);
+  adjust stops in `scales.ts` only.
 
 ### Task 19: Accessibility and mobile pass
 
