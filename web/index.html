@@ -3,9 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>zephyr</title>
+    <title>zephyr — live wind & weather globe</title>
+    <meta name="description" content="Live global wind, temperature, precipitation and cloud cover from NOAA GFS on a 3D globe." />
   </head>
   <body>
+    <canvas id="globe"></canvas>
+    <div id="banner" class="banner" role="status" hidden></div>
+    <button id="menu" class="menu" aria-controls="panel" aria-expanded="true" aria-label="Toggle controls">☰</button>
+    <aside id="panel" class="panel">
+      <h1>zephyr</h1>
+      <p id="valid" class="muted">Loading weather data…</p>
+      <fieldset id="layers" class="layers"><legend>Layer</legend></fieldset>
+      <label class="toggle"><input type="checkbox" id="wind-toggle" checked /> Wind particles</label>
+      <p id="notice" class="notice" hidden></p>
+      <figure class="legend">
+        <canvas id="legend" width="240" height="10"></canvas>
+        <figcaption id="legend-ticks"></figcaption>
+      </figure>
+      <p id="readout" class="readout">Hover the globe for values</p>
+      <footer class="muted">Data: NOAA GFS via NOAA Open Data Dissemination.</footer>
+    </aside>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
