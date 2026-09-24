@@ -37,10 +37,10 @@ async function start() {
   renderer.setClearColor(0x05070b);
   renderer.autoClear = false;
   const globe = new Globe(canvas, land.texture, manifest.grid);
-  const { scale } = SCALAR_LAYERS.temperature;
+  const { scale, ticks } = SCALAR_LAYERS.temperature;
   const layer = manifest.layers.temperature;
   globe.setScalar(temperature.texture, layer, scale);
-  drawLegend($("#legend"), $("#legend-ticks"), scale, layer.units);
+  drawLegend($("#legend"), $("#legend-ticks"), scale, layer.units, ticks);
 
   let windLayer: WindLayer | null = null;
   if (WindLayer.supported(renderer) && !(dev && params.has("nofloat"))) {
