@@ -191,3 +191,19 @@ at the dateline with `RepeatWrapping`; north cap centred; not mirrored
 **Tooling.** The preview tool reads `claude/.claude/launch.json` (the session
 root), which already serves ipa-captions on 5173; zephyr's dev server is the
 `zephyr-web` entry on **port 5174** (`--strictPort`).
+
+## Deployment (M5, 2026-09-24)
+
+- Live: https://zephyr-globe.web.app (Firebase project `zephyr-globe`, Spark plan).
+- Repo: https://github.com/josh-W42/zephyr (public). `ci.yml` runs both test
+  suites on push/PR; `refresh.yml` runs at 04:30/10:30/16:30/22:30 UTC and on
+  demand (`gh workflow run refresh-data -f deploy=false|true`).
+- Deploy credential: service account `zephyr-deployer` with **only** Firebase
+  Hosting Admin — verified sufficient for `action-hosting-deploy` on the live
+  channel. Key stored as the `FIREBASE_SERVICE_ACCOUNT` secret; project ID as the
+  `FIREBASE_PROJECT_ID` repo variable.
+- First real Linux run (CI): `Found: ecCodes v2.49.0. Your system is ready.`,
+  42 pipeline tests pass — closes the M0 Linux gap.
+- Ops notes: GitHub disables scheduled workflows in public repos after 60 days
+  without repository activity; `ubuntu-latest` moves to Ubuntu 26 from
+  2026-10-19 (watch the first run after that date).
