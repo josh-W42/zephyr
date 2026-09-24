@@ -1,5 +1,6 @@
 import "./style.css";
 import * as THREE from "three";
+import { runBench, type BenchResult } from "./bench";
 import { debugWind, driftStats } from "./debugWind";
 import { sampleByte } from "./field";
 import { formatLonLat, formatValidTime, formatValue, windFrom } from "./format";
@@ -14,7 +15,14 @@ import { WindLayer } from "./wind";
 declare global {
   interface Window {
     __zephyr?: Record<string, unknown>;
+    __zephyrBench?: Promise<BenchResult>;
   }
+}
+
+/** Integer query parameter within [min, max], else null. */
+function intParam(name: string, min: number, max: number): number | null {
+  const n = Number(params.get(name));
+  return params.has(name) && Number.isInteger(n) && n >= min && n <= max ? n : null;
 }
 
 const DATA = `${import.meta.env.BASE_URL}data/`;
@@ -52,7 +60,7 @@ async function start() {
 
   let windLayer: WindLayer | null = null;
   if (WindLayer.supported(renderer) && !(dev && params.has("nofloat"))) {
-    const side = matchMedia("(pointer: coarse)").matches ? 128 : 256;
+    const side = intParam("particles", 32, 1024) ?? (matchMedia("(pointer: coarse)").matches ? 128 : 256);
     windLayer = new WindLayer(renderer, globe.camera, wind.texture, manifest.layers.wind, manifest.grid, side);
     const debug = dev ? params.get("debug") : null;
     if (debug === "eastward" || debug === "rotation") {
@@ -140,6 +148,14 @@ async function start() {
     renderer.render(globe.scene, globe.camera);
     windLayer?.render();
   });
+
+  const benchSeconds = intParam("bench", 1, 120);
+  if (benchSeconds) {
+    window.__zephyrBench = runBench(benchSeconds).then((r) => {
+      console.info("zephyr bench", JSON.stringify(r));
+      return r;
+    });
+  }
 
   if (dev) {
     window.__zephyr = {
