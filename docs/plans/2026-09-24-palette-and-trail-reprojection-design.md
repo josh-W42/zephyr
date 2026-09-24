@@ -46,3 +46,21 @@ motion → UV unchanged; off-globe → null; point hidden last frame → null.
 
 **Known limitation:** zooming resamples the trail image, so streaks soften
 briefly mid-zoom.
+
+## Colour-vision review (M6, 2026-09-24) — decision: keep this palette
+
+Reviewed with the dataviz skill's validator (Machado CVD simulation, OKLab ΔE×100)
+over every pair of 1 °C samples at least 10 / 15 °C apart:
+
+| ≥15 °C apart, pairs with ΔE < 8 | normal | deutan | protan | tritan |
+| --- | --- | --- | --- | --- |
+| shipped multi-hue scale | 0 | 12 (worst 15 vs 30 °C, 4.8) | 4 | 35 (worst −4 vs 11 °C, 3.1) |
+| CVD-safe alternative (lightness peak at 18 °C) | 0 | 0 | 0 | 0 |
+
+Cause: lightness peaks at yellow (24 °C), so green (~17 °C) and orange (~27 °C) sit at
+equal lightness and collapse for red-green colour-blind viewers. The alternative
+(stops −40 #5a1b6b, −25 #5a42b2, −10 #3778d7, 0 #22a9dc, 10 #56d3da, 18 #b6f6d2,
+23 #e5e261, 28 #f6b324, 32 #f37513, 38 #d03830, 45 #97182b) fixes it but makes the
+tropics amber/orange again. **The user chose to keep the shipped palette**; the hover
+readout (exact °C) and the legend ticks are the secondary encoding. Revisit if the
+project targets accessibility compliance.
