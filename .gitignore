@@ -6,6 +6,9 @@ __pycache__/
 *.idx
 pipeline/spikes/out/
 
+# Firebase CLI deploy cache
+.firebase/
+
 # Web
 web/node_modules/
 web/dist/
