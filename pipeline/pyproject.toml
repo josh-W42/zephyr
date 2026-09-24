@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zephyr-pipeline"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.4",
+    "xarray>=2026.7",
+    "cfgrib>=0.9.15",
+    "eccodes>=2.48",
+    "pillow>=12.3",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=9.1"]
+
+[tool.setuptools]
+packages = ["zephyr_pipeline"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

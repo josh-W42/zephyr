@@ -1,0 +1,16 @@
+# Python
+pipeline/.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+*.idx
+pipeline/spikes/out/
+
+# Web
+web/node_modules/
+web/dist/
+web/public/data/
+
+# GRIB downloads (the committed test fixture is re-included)
+*.grib2
+!pipeline/tests/fixtures/*.grib2
