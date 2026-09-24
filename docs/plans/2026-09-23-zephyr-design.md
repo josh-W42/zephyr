@@ -82,7 +82,9 @@ third-party map image or licence.
 
 **Color layers.** One `ShaderMaterial` samples the active field texture by
 equirectangular UV, decodes with manifest min/max uniforms, and maps through a
-1D colormap LUT texture. Temperature: diverging blue→red. Precipitation and
+1D colormap LUT texture. Temperature: multi-hue weather-map scale (replaced
+the original diverging blue→red on 2026-09-24; see
+`2026-09-24-palette-and-trail-reprojection-design.md`). Precipitation and
 clouds: alpha ramps to transparent near zero. Longitude uses repeat wrapping
 (no dateline seam). Switching layers swaps a texture and uniforms.
 
@@ -95,8 +97,10 @@ clouds: alpha ramps to transparent near zero. Longitude uses repeat wrapping
 - Draw pass renders points slightly above the surface, colored by speed.
 
 **Trails.** Screen-space fade: each frame, fade the previous frame's texture
-and draw particles on top. Crisp at any zoom; particles hide while the camera
-is being dragged and fade back in afterward (the earth.nullschool approach).
+and draw particles on top. Crisp at any zoom. Since 2026-09-24 the fade pass
+reprojects the previous trail image through the camera change, so trails stay
+on the globe while dragging and zooming (originally they were hidden during
+motion, the earth.nullschool approach).
 Rejected alternative: map-space equirectangular trail texture, which avoids
 smearing but blurs on zoom and distorts near the poles.
 
