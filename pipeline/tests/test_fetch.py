@@ -43,6 +43,7 @@ ORDER = [
     ("PRATE", "surface", "5 hour fcst"),
     ("PRATE", "surface", "0-5 hour ave fcst"),
     ("TCDC", "entire atmosphere", "5 hour fcst"),
+    ("LAND", "surface", "5 hour fcst"),
 ]
 
 
@@ -60,13 +61,15 @@ def test_download_subset_returns_wanted_messages_in_wanted_order():
 
     data = download_subset(RUN, get=get)
 
-    assert data == message(b"U") + message(b"V") + message(b"T") + message(b"P") + message(b"T")
+    assert data == (
+        message(b"U") + message(b"V") + message(b"T") + message(b"P") + message(b"T") + message(b"L")
+    )
     assert calls[0] == (url + ".idx", None)
-    assert calls[-1][1].endswith("-")  # TCDC is last in the file: open-ended range
+    assert calls[-1][1].endswith("-")  # LAND is last in the file: open-ended range
 
 
-def test_wanted_covers_the_five_fields():
-    assert {v for v, _ in WANTED} == {"UGRD", "VGRD", "TMP", "PRATE", "TCDC"}
+def test_wanted_covers_the_six_fields():
+    assert {v for v, _ in WANTED} == {"UGRD", "VGRD", "TMP", "PRATE", "TCDC", "LAND"}
 
 
 def test_unframed_response_raises():

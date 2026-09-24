@@ -28,7 +28,7 @@ def test_manifest_describes_run_grid_and_layers(tmp_path):
     assert m["validTime"] == "2026-09-23T06:00:00Z"
     assert m["generatedAt"] == "2026-09-23T05:30:00Z"
     assert m["grid"] == {"width": 360, "height": 181, "lon0": -180.0, "lat0": 90.0, "dlon": 1.0, "dlat": -1.0}
-    assert set(m["layers"]) == {"wind", "temperature", "precipitation", "clouds"}
+    assert set(m["layers"]) == {"wind", "temperature", "precipitation", "clouds", "land"}
     for layer in m["layers"].values():
         assert (tmp_path / layer["file"]).exists()
         assert len(layer["min"]) == len(layer["max"])
@@ -53,6 +53,13 @@ def test_wind_texture_is_rgb_with_two_components(tmp_path):
     px = pixels(tmp_path / m["layers"]["wind"]["file"])
     assert px.shape == (181, 360, 3) and (px[..., 2] == 0).all()
     assert len(m["layers"]["wind"]["min"]) == 2
+
+
+def test_land_mask_is_binary_texture(tmp_path):
+    m = build(tmp_path, FIXTURE, RUN, GENERATED)
+    land = m["layers"]["land"]
+    assert (land["min"], land["max"]) == ([0.0], [1.0])
+    assert set(np.unique(pixels(tmp_path / land["file"])).tolist()) == {0, 255}
 
 
 def test_rebuild_prunes_stale_textures_but_nothing_else(tmp_path):

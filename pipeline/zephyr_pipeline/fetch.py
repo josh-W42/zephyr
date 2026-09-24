@@ -12,6 +12,7 @@ WANTED = [
     ("TMP", "2 m above ground"),
     ("PRATE", "surface"),
     ("TCDC", "entire atmosphere"),
+    ("LAND", "surface"),
 ]
 
 HttpGet = Callable[[str, dict[str, str]], bytes]

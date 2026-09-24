@@ -10,6 +10,7 @@ EXPECTED = {
     "t2m": ("temperature", "K"),
     "prate": ("precipitation", "kg m**-2 s**-1"),
     "tcc": ("clouds", "%"),
+    "lsm": ("land", "(0 - 1)"),
 }
 
 

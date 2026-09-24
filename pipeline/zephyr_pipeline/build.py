@@ -17,6 +17,7 @@ LAYERS = {
     "temperature": (["temperature"], "°C", "linear"),
     "precipitation": (["precipitation"], "mm/h", "sqrt"),
     "clouds": (["clouds"], "%", "linear"),
+    "land": (["land"], "", "linear"),
 }
 _TEXTURE_NAME = re.compile(r"^[a-z]+\.[0-9a-f]{12}\.png$")
 
